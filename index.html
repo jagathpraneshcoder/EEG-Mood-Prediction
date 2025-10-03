@@ -246,7 +246,16 @@
                     },
                     plugins: {
                         tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 12 },
+                            footerFont: { size: 11, style: 'italic' },
+                            footerSpacing: 4,
+                            padding: 12,
                             callbacks: {
+                                title: function(tooltipItems) {
+                                    return `Trial ${tooltipItems[0].dataIndex + 1}`;
+                                },
                                 label: function(context) {
                                     let label = context.dataset.label || '';
                                     if (label) {
@@ -255,6 +264,30 @@
                                     const value = context.parsed.y;
                                     label += value === 1 ? 'High' : 'Low';
                                     return label;
+                                },
+                                footer: function(tooltipItems) {
+                                    const dataIndex = tooltipItems[0].dataIndex;
+                                    const suggestion = predictionData[dataIndex].suggestion;
+
+                                    // Helper to wrap text for tooltips
+                                    const wrapText = (text, maxWidth) => {
+                                        const words = text.split(' ');
+                                        let lines = [];
+                                        let currentLine = words.shift();
+                                        words.forEach(word => {
+                                            if ((currentLine + " " + word).length < maxWidth) {
+                                                currentLine += " " + word;
+                                            } else {
+                                                lines.push(currentLine);
+                                                currentLine = word;
+                                            }
+                                        });
+                                        lines.push(currentLine);
+                                        return lines;
+                                    };
+                                    
+                                    const suggestionLines = wrapText(suggestion, 40);
+                                    return ['\nSuggestion:', ...suggestionLines];
                                 }
                             }
                         }
