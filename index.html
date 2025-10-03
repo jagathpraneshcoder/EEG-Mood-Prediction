@@ -6,87 +6,133 @@
     <title>EEG Mood Prediction System</title>
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js via CDN for graphing -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Custom styles for better aesthetics */
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Poppins', sans-serif;
         }
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        
         .spinner {
-            border-top-color: #3498db;
+            border: 4px solid #374151; /* border-gray-700 */
+            border-top-color: #22d3ee; /* cyan-400 */
+            border-radius: 50%;
             animation: spin 1s linear infinite;
         }
         @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
             to {
                 transform: rotate(360deg);
             }
         }
-        /* Custom file input style */
+
+        /* Custom file input style for dark mode */
         input[type="file"]::file-selector-button {
-            background-color: #3b82f6; /* bg-blue-500 */
-            color: white;
-            border: 1px solid #3b82f6;
+            background-color: #1f2937; /* bg-gray-800 */
+            color: #9ca3af; /* text-gray-400 */
+            border: 1px solid #374151; /* border-gray-700 */
             padding: 0.5rem 1rem;
             border-radius: 0.375rem; /* rounded-md */
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s, color 0.2s;
         }
         input[type="file"]::file-selector-button:hover {
-            background-color: #2563eb; /* bg-blue-600 */
+            background-color: #374151; /* bg-gray-700 */
+            color: #d1d5db; /* text-gray-300 */
+        }
+        
+        /* Fade-in animation for results */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        /* Animated background styles */
+        #background-gif-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -10;
+            background-image: url('https://i.giphy.com/VELC2400W8PbG.webp');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.15;
+            filter: blur(2px);
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen">
+<body class="bg-gray-900 text-gray-200 overflow-hidden">
 
-    <div class="container mx-auto p-4 md:p-8 max-w-4xl">
-        <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 space-y-6">
+    <!-- Animated background -->
+    <div id="background-gif-container"></div>
 
-            <!-- Header Section -->
-            <div class="text-center">
-                <h1 class="text-3xl md:text-4xl font-bold text-gray-900">EEG Mood Prediction System</h1>
-                <p class="text-gray-500 mt-2">Upload a DEAP dataset `.dat` file to predict mood (Valence & Arousal).</p>
-            </div>
+    <!-- Upload Screen -->
+    <main id="upload-screen" class="flex items-center justify-center min-h-screen py-8 px-4 transition-opacity duration-500">
+        <div class="container mx-auto p-4 md:p-8 max-w-5xl">
+            <div class="bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl shadow-cyan-500/10 ring-1 ring-white/10 p-6 md:p-8 space-y-6">
 
-            <!-- Form Section -->
-            <form id="prediction-form" class="space-y-4 border-t border-gray-200 pt-6">
-                <div>
-                    <label for="eeg-file" class="block text-sm font-medium text-gray-700 mb-2">Select Subject File:</label>
-                    <input type="file" id="eeg-file" name="eeg_file" accept=".dat" required
-                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <!-- Header Section -->
+                <div class="text-center">
+                    <h1 class="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-teal-400">EEG Mood Prediction System</h1>
+                    <p class="text-gray-400 mt-2 max-w-2xl mx-auto">Upload a DEAP dataset `.dat` file to predict and visualize mood (Valence & Arousal) with our advanced AI model.</p>
                 </div>
-                <button type="submit"
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-105 duration-300 ease-in-out">
-                    Predict Mood
-                </button>
-            </form>
 
-            <!-- Loading & Error Section -->
-            <div id="status-container" class="text-center p-4 hidden">
-                 <div id="loader" class="spinner w-8 h-8 border-4 border-gray-200 rounded-full mx-auto hidden"></div>
-                 <p id="error-message" class="text-red-500 font-medium hidden"></p>
-            </div>
+                <!-- Form Section -->
+                <form id="prediction-form" class="space-y-6 border-t border-gray-700/50 pt-6">
+                    <div>
+                        <label for="eeg-file" class="block text-sm font-medium text-gray-300 mb-2">Select Subject File:</label>
+                        <input type="file" id="eeg-file" name="eeg_file" accept=".dat" required
+                               class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold cursor-pointer rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-gray-900/50">
+                    </div>
+                    <button type="submit"
+                            class="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-cyan-500 transition-all transform hover:scale-[1.02] duration-300 ease-in-out shadow-lg shadow-cyan-500/20">
+                        Predict & Visualize
+                    </button>
+                </form>
 
-            <!-- Results Section -->
-            <div id="results-section" class="hidden">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4 border-b pb-2">Prediction Results</h2>
-                <div class="overflow-x-auto rounded-lg border border-gray-200">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Trial #</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Predicted Valence</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Predicted Arousal</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Clinical Suggestion</th>
-                            </tr>
-                        </thead>
-                        <tbody id="results-body" class="bg-white divide-y divide-gray-200">
-                            <!-- Results will be dynamically inserted here -->
-                        </tbody>
-                    </table>
+                <!-- Loading & Error Section -->
+                <div id="status-container" class="text-center p-4 hidden">
+                     <div id="loader" class="spinner w-8 h-8 mx-auto hidden"></div>
+                     <p id="error-message" class="text-red-400 font-medium hidden"></p>
                 </div>
             </div>
         </div>
+    </main>
+
+    <!-- Full Screen Results View -->
+    <div id="results-screen" class="hidden fixed inset-0 bg-gray-900/90 backdrop-blur-md z-20 flex flex-col items-center justify-center p-4 sm:p-8">
+        <div class="w-full h-full max-w-7xl flex flex-col space-y-6">
+            <h2 class="text-2xl font-bold text-gray-100 border-b border-gray-700 pb-2 text-center">Prediction Results Visualization</h2>
+            <div class="relative flex-grow w-full bg-gray-900/50 rounded-lg p-4">
+                <canvas id="results-chart"></canvas>
+            </div>
+            <div class="text-center">
+                 <button id="generate-report-btn" class="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-emerald-500 transition-all transform hover:scale-[1.02] duration-300 ease-in-out shadow-lg shadow-emerald-500/20">
+                    Generate Report
+                </button>
+            </div>
+        </div>
+        
+        <!-- Floating Action Button -->
+        <button id="add-another-file-btn" class="group fixed bottom-8 right-8 bg-gradient-to-r from-cyan-500 to-blue-500 text-white w-16 h-16 rounded-full flex items-center justify-center shadow-lg hover:from-cyan-600 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-cyan-500 transition-all transform hover:scale-110 duration-300 ease-in-out">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            <span class="absolute bottom-1/2 translate-y-1/2 right-full mr-4 px-3 py-1.5 bg-gray-700 text-white text-xs font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30">
+                Add Another File
+            </span>
+        </button>
     </div>
+
 
     <script>
         // --- DOM Element References ---
@@ -95,21 +141,27 @@
         const statusContainer = document.getElementById('status-container');
         const loader = document.getElementById('loader');
         const errorMessage = document.getElementById('error-message');
-        const resultsSection = document.getElementById('results-section');
-        const resultsBody = document.getElementById('results-body');
-
+        const generateReportBtn = document.getElementById('generate-report-btn');
+        const addAnotherFileBtn = document.getElementById('add-another-file-btn');
+        const uploadScreen = document.getElementById('upload-screen');
+        const resultsScreen = document.getElementById('results-screen');
+        
         const API_URL = 'http://127.0.0.1:5000/predict';
+
+        // --- Global variables ---
+        let predictionData = [];
+        let resultsChart = null;
 
         // --- Event Listener for Form Submission ---
         form.addEventListener('submit', async (event) => {
-            event.preventDefault(); // Prevent default form submission
-
+            event.preventDefault();
+            
             // --- UI Reset ---
-            resultsSection.classList.add('hidden');
             errorMessage.classList.add('hidden');
-            resultsBody.innerHTML = ''; // Clear previous results
             statusContainer.classList.remove('hidden');
             loader.classList.remove('hidden');
+            
+            if (resultsChart) resultsChart.destroy();
 
             const file = fileInput.files[0];
             if (!file) {
@@ -121,57 +173,149 @@
             formData.append('eeg_file', file);
 
             try {
-                // --- Fetch API Call to Backend ---
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: formData,
-                });
-
+                const response = await fetch(API_URL, { method: 'POST', body: formData });
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
                 }
-
-                const results = await response.json();
-                displayResults(results);
-
+                predictionData = await response.json();
+                displayResultsAsChart(predictionData);
+                showResultsScreen();
             } catch (error) {
                 console.error('Prediction error:', error);
                 showError(`Prediction failed: ${error.message}`);
             } finally {
-                // --- UI Cleanup ---
                 loader.classList.add('hidden');
             }
         });
 
+        // --- Event Listeners for Buttons ---
+        generateReportBtn.addEventListener('click', generateCSVReport);
+        addAnotherFileBtn.addEventListener('click', showUploadScreen);
+
         /**
-         * Displays the prediction results in the table.
+         * Hides the results screen and shows the upload screen.
+         */
+        function showUploadScreen() {
+            resultsScreen.classList.add('hidden');
+            resultsScreen.classList.remove('fade-in');
+            uploadScreen.classList.remove('hidden');
+            form.reset();
+            predictionData = [];
+            if(resultsChart) resultsChart.destroy();
+        }
+
+        /**
+         * Hides the upload screen and shows the results screen.
+         */
+        function showResultsScreen() {
+            uploadScreen.classList.add('hidden');
+            resultsScreen.classList.remove('hidden');
+            resultsScreen.classList.add('fade-in');
+        }
+
+        /**
+         * Generates and downloads a CSV report of the prediction data.
+         */
+        function generateCSVReport() {
+            if (predictionData.length === 0) {
+                showError("No data available to generate a report.");
+                return;
+            }
+            const headers = ["Trial #", "Predicted Valence", "Predicted Arousal", "Clinical Suggestion"];
+            const rows = predictionData.map(row => 
+                [row.trial, row.valence, row.arousal, `"${row.suggestion}"`].join(',')
+            );
+            const csvContent = [headers.join(','), ...rows].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            const fileName = fileInput.files[0]?.name.replace('.dat', '_report.csv') || 'eeg_mood_report.csv';
+            link.setAttribute("download", fileName);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        /**
+         * Displays the prediction results as a bar chart.
          * @param {Array<Object>} results - An array of prediction result objects.
          */
-        function displayResults(results) {
+        function displayResultsAsChart(results) {
             if (!results || results.length === 0) {
                 showError("No results returned from the server.");
                 return;
             }
 
-            results.forEach(result => {
-                const row = document.createElement('tr');
-                row.classList.add('hover:bg-gray-50');
+            const labels = results.map(r => `Trial ${r.trial}`);
+            const valenceData = results.map(r => r.valence === 'High' ? 1 : -1);
+            const arousalData = results.map(r => r.arousal === 'High' ? 1 : -1);
+            
+            const chartCanvas = document.getElementById('results-chart').getContext('2d');
+            
+            const valenceColor = 'rgba(192, 38, 211, 0.7)'; // Fuchsia-600
+            const arousalColor = 'rgba(217, 119, 6, 0.7)';  // Amber-600
 
-                // Determine text colors based on prediction
-                const valenceColor = result.valence === 'High' ? 'text-green-600' : 'text-red-600';
-                const arousalColor = result.arousal === 'High' ? 'text-blue-600' : 'text-yellow-600';
-
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${result.trial}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold ${valenceColor}">${result.valence}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold ${arousalColor}">${result.arousal}</td>
-                    <td class="px-6 py-4 whitespace-normal text-sm text-gray-600">${result.suggestion}</td>
-                `;
-                resultsBody.appendChild(row);
+            resultsChart = new Chart(chartCanvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Valence',
+                        data: valenceData,
+                        backgroundColor: valenceColor,
+                        borderColor: valenceColor.replace('0.7', '1'),
+                        borderWidth: 1
+                    }, {
+                        label: 'Arousal',
+                        data: arousalData,
+                        backgroundColor: arousalColor,
+                        borderColor: arousalColor.replace('0.7', '1'),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        x: { 
+                            title: { display: true, text: 'Trials', color: '#9ca3af' }, 
+                            ticks: { 
+                                color: '#9ca3af',
+                                maxRotation: 45,
+                                minRotation: 45
+                            }, 
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' } 
+                        },
+                        y: {
+                            ticks: { color: '#9ca3af', callback: v => (v === 1 ? 'High' : (v === -1 ? 'Low' : null)) },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }, min: -1.5, max: 1.5
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#d1d5db' } },
+                        tooltip: {
+                            backgroundColor: 'rgba(17, 24, 39, 0.9)', titleColor: '#e5e7eb', bodyColor: '#d1d5db',
+                            footerColor: '#9ca3af', borderColor: '#374151', borderWidth: 1, titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 12 }, footerFont: { size: 11, style: 'italic' }, footerSpacing: 4, padding: 12,
+                            callbacks: {
+                                title: (items) => `Trial ${items[0].dataIndex + 1}`,
+                                label: (ctx) => `${ctx.dataset.label || ''}: ${ctx.parsed.y === 1 ? 'High' : 'Low'}`,
+                                footer: (items) => {
+                                    const suggestion = predictionData[items[0].dataIndex].suggestion;
+                                    const wrapText = (text, max) => text.split(' ').reduce((acc, word) => {
+                                        let lastLine = acc.length ? acc[acc.length-1] : null;
+                                        if (lastLine && (lastLine + " " + word).length < max) acc[acc.length-1] += " " + word;
+                                        else acc.push(word);
+                                        return acc;
+                                    }, []);
+                                    return ['\nSuggestion:', ...wrapText(suggestion, 40)];
+                                }
+                            }
+                        }
+                    }
+                }
             });
-
-            resultsSection.classList.remove('hidden');
         }
 
         /**
@@ -182,7 +326,9 @@
             errorMessage.textContent = message;
             errorMessage.classList.remove('hidden');
             loader.classList.add('hidden');
+            statusContainer.classList.remove('hidden'); // Ensure container is visible for error
         }
     </script>
 </body>
 </html>
+
